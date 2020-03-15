@@ -44,7 +44,7 @@ const fieldDispatchesCountOnInteraction = (tagname, count) => {
     const el = await fixture(html`<${tag}></${tag}>`);
     el.addEventListener('model-value-changed', spy);
     // TODO: discuss if this is the "correct" way to interact with component
-    el.value = 'foo';
+    el.modelValue = 'foo';
     await el.updateComplete;
     expect(spy.callCount).to.equal(count);
   });
