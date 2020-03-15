@@ -18,6 +18,9 @@ import '@lion/radio-group/lion-radio-group.js';
 import '@lion/radio-group/lion-radio.js';
 
 import '@lion/select/lion-select.js';
+
+import '@lion/select-rich/lion-select-rich.js';
+import '@lion/select-rich/lion-options.js';
 import '@lion/select-rich/lion-option.js';
 
 const featureName = 'model value';
@@ -182,6 +185,47 @@ describe('lion-select', () => {
 
       const option3 = el.querySelector('option:nth-child(3)');
       option3.selected = true;
+      expect(spy.callCount).to.equal(interactionCount);
+    });
+  });
+});
+
+describe('lion-select-rich', () => {
+  describe(featureName, () => {
+    it(`should dispatch ${firstStampCount} time(s) on first paint`, async () => {
+      const spy = sinon.spy();
+      await fixture(html`
+        <lion-select-rich @model-value-changed="${spy}">
+          <lion-options slot="input">
+            <lion-option .choiceValue="${'option1'}"></lion-option>
+            <lion-option .choiceValue="${'option2'}"></lion-option>
+            <lion-option .choiceValue="${'option3'}"></lion-option>
+          </lion-options>
+        </lion-select-rich>
+      `);
+      expect(spy.callCount).to.equal(firstStampCount);
+    });
+
+    it(`should dispatch ${interactionCount} time(s) on interaction`, async () => {
+      const spy = sinon.spy();
+      const el = await fixture(html`
+        <lion-select-rich>
+          <lion-options slot="input">
+            <lion-option .choiceValue="${'option1'}"></lion-option>
+            <lion-option .choiceValue="${'option2'}"></lion-option>
+            <lion-option .choiceValue="${'option3'}"></lion-option>
+          </lion-options>
+        </lion-select-rich>
+      `);
+      el.addEventListener('model-value-changed', spy);
+      const option2 = el.querySelector('lion-option:nth-child(2)');
+      option2.checked = true;
+      expect(spy.callCount).to.equal(interactionCount);
+
+      spy.resetHistory();
+
+      const option3 = el.querySelector('lion-option:nth-child(3)');
+      option3.checked = true;
       expect(spy.callCount).to.equal(interactionCount);
     });
   });
