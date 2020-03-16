@@ -59,6 +59,29 @@ describe('model value event', () => {
       const e = spy.firstCall.args[0];
       expect(e.detail.formPath).to.eql([input, parent, grandparent]);
     });
+
+    it('should ignore elements that are not fields or fieldsets', async () => {
+      const spy = sinon.spy();
+      const grandparent = await fixture(html`
+        <lion-fieldset name="grandparent">
+          <div>
+            <lion-fieldset name="parent">
+              <div>
+                <div>
+                  <lion-input name="input"></lion-input>
+                </div>
+              </div>
+            </lion-fieldset>
+          </div>
+        </lion-fieldset>
+      `);
+      const parent = grandparent.querySelector('[name=parent]');
+      const input = grandparent.querySelector('[name=input]');
+      grandparent.addEventListener('model-value-changed', spy);
+      input.modelValue = 'foo';
+      const e = spy.firstCall.args[0];
+      expect(e.detail.formPath).to.eql([input, parent, grandparent]);
+    });
   });
 
   describe('signature', () => {
