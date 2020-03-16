@@ -114,6 +114,7 @@ export const FormGroupMixin = dedupeMixin(
         this.addEventListener('focusout', this._onFocusOut);
         this.addEventListener('dirty-changed', this._syncDirty);
         this.addEventListener('validate-performed', this.__onChildValidatePerformed);
+        this.addEventListener('model-value-changed', this.__onModelValueChanged);
 
         this.defaultValidators = [new FormElementsHaveNoError()];
       }
@@ -393,6 +394,21 @@ export const FormGroupMixin = dedupeMixin(
       removeFormElement(...args) {
         super.removeFormElement(...args);
         this.validate();
+      }
+
+      __onModelValueChanged(e) {
+        // TODO (@tlouisse): explain why this early return is needed.
+        if (e.target === this) {
+          return;
+        }
+        this.dispatchEvent(
+          new CustomEvent('model-value-changed', {
+            bubbles: true,
+            detail: {
+              formPath: [...e.detail.formPath, this],
+            },
+          }),
+        );
       }
     },
 );

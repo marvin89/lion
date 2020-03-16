@@ -15,7 +15,7 @@ describe('model value event', () => {
       input.addEventListener('model-value-changed', spy);
       input.modelValue = 'woof';
       const e = spy.firstCall.args[0];
-      expect(e.formPath).to.have.a.property('formPath');
+      expect(e.detail).to.have.a.property('formPath');
     });
 
     it('should contain dispatching field', async () => {
@@ -26,7 +26,7 @@ describe('model value event', () => {
       input.addEventListener('model-value-changed', spy);
       input.modelValue = 'foo';
       const e = spy.firstCall.args[0];
-      expect(e.formPath).to.eql([input]);
+      expect(e.detail.formPath).to.eql([input]);
     });
 
     it('should contain field and group', async () => {
@@ -40,7 +40,7 @@ describe('model value event', () => {
       const input = fieldset.querySelector('lion-input');
       input.modelValue = 'foo';
       const e = spy.firstCall.args[0];
-      expect(e.formPath).to.eql([input, fieldset]);
+      expect(e.detail.formPath).to.eql([input, fieldset]);
     });
 
     it('should contain deep elements', async () => {
@@ -57,7 +57,7 @@ describe('model value event', () => {
       grandparent.addEventListener('model-value-changed', spy);
       input.modelValue = 'foo';
       const e = spy.firstCall.args[0];
-      expect(e.formPath).to.eql([input, parent, grandparent]);
+      expect(e.detail.formPath).to.eql([input, parent, grandparent]);
     });
   });
 
