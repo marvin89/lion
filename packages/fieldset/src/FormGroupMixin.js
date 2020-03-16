@@ -401,6 +401,7 @@ export const FormGroupMixin = dedupeMixin(
         if (e.target === this) {
           return;
         }
+        e.stopImmediatePropagation();
         this.dispatchEvent(
           new CustomEvent('model-value-changed', {
             bubbles: true,
