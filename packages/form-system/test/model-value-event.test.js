@@ -43,10 +43,11 @@ describe('model value event', () => {
       expect(e.detail.formPath).to.eql([input, fieldset]);
     });
 
-    it('should contain deep elements', async () => {
+    it.only('should contain deep elements', async () => {
       const spy = sinon.spy();
+      const initSpy = sinon.spy();
       const grandparent = await fixture(html`
-        <lion-fieldset name="grandparent">
+        <lion-fieldset name="grandparent" @model-value-changed=${initSpy}>
           <lion-fieldset name="parent">
             <lion-input name="input"></lion-input>
           </lion-fieldset>
@@ -58,6 +59,7 @@ describe('model value event', () => {
       input.modelValue = 'foo';
       const e = spy.firstCall.args[0];
       expect(e.detail.formPath).to.eql([input, parent, grandparent]);
+      expect(initSpy.callCount).to.equal(1);
     });
 
     it('should ignore elements that are not fields or fieldsets', async () => {

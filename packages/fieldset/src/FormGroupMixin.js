@@ -421,11 +421,11 @@ export const FormGroupMixin = dedupeMixin(
         // count consistency (to not confuse the application developer with a
         // large number of initial events). Initially the source field will not
         // be part of the formPath but afterwards it will.
-        this.__propagateChildrenInit = true;
+        this.__formGroupInitialized = true;
         this.dispatchEvent(
           new CustomEvent('model-value-changed', {
             bubbles: true,
-            detail: { formPath: [this] },
+            detail: { formPath: [this], initialize: true },
           }),
         );
       }
@@ -439,11 +439,12 @@ export const FormGroupMixin = dedupeMixin(
         this._onBeforeRepropagateChildrenValues(ev);
 
         // Stop repropagating children events before firstUpdated.
-        if (!this.__propagateChildrenInit) {
+        if (!this.__formGroupInitialized || ev.detail.initialize) {
           ev.stopImmediatePropagation();
+          return;
         }
 
-        // Prevent eternal loops when we sent the event below.
+        // Prevent eternal loops after we sent the event below.
         if (ev.target === this) {
           return;
         }
