@@ -413,6 +413,23 @@ export const FormGroupMixin = dedupeMixin(
       //   );
       // }
 
+      firstUpdated(changedProperties) {
+        super.firstUpdated(changedProperties);
+
+        // Initially we don't repropagate model-value-changed events comming
+        // from children. On firstUpdated we re-dispatch this event to maintain
+        // count consistency (to not confuse the application developer with a
+        // large number of initial events). Initially the source field will not
+        // be part of the formPath but afterwards it will.
+        this.__propagateChildrenInit = true;
+        this.dispatchEvent(
+          new CustomEvent('model-value-changed', {
+            bubbles: true,
+            detail: { formPath: [this] },
+          }),
+        );
+      }
+
       // eslint-disable-next-line class-methods-use-this, no-unused-vars
       _onBeforeRepropagateChildrenValues(ev) {}
 
@@ -421,10 +438,16 @@ export const FormGroupMixin = dedupeMixin(
         // (before stopImmediatePropagation is called below).
         this._onBeforeRepropagateChildrenValues(ev);
 
+        // Stop repropagating children events before firstUpdated.
+        if (!this.__propagateChildrenInit) {
+          ev.stopImmediatePropagation();
+        }
+
         // Prevent eternal loops when we sent the event below.
         if (ev.target === this) {
           return;
         }
+
         // This makes sure our siblings will not be handled. In this way (combined with the fact
         // that __repropagateChildrenValues callback is added in constructor(so before the outside
         // world gets the chance to listen to model-value-changed)), an Application
