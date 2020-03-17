@@ -55,22 +55,22 @@ export const ChoiceGroupMixin = dedupeMixin(
       constructor() {
         super();
         this.multipleChoice = false;
-        // this._isChoiceGroup = true; // configures event propagation logic of FormControlMixin
+        this._isChoiceGroup = true; // configures event propagation logic of FormControlMixin
       }
 
-      connectedCallback() {
-        super.connectedCallback();
-        if (!this.multipleChoice) {
-          this.addEventListener('model-value-changed', this._checkSingleChoiceElements);
-        }
-      }
+      // connectedCallback() {
+      //   super.connectedCallback();
+      //   if (!this.multipleChoice) {
+      //     this.addEventListener('model-value-changed', this._checkSingleChoiceElements);
+      //   }
+      // }
 
-      disconnectedCallback() {
-        super.disconnectedCallback();
-        if (!this.multipleChoice) {
-          this.removeEventListener('model-value-changed', this._checkSingleChoiceElements);
-        }
-      }
+      // disconnectedCallback() {
+      //   super.disconnectedCallback();
+      //   if (!this.multipleChoice) {
+      //     this.removeEventListener('model-value-changed', this._checkSingleChoiceElements);
+      //   }
+      // }
 
       /**
        * @override from FormRegistrarMixin
@@ -158,9 +158,10 @@ export const ChoiceGroupMixin = dedupeMixin(
         }
       }
 
-      __triggerCheckedValueChanged() {
+      __setChoiceGroupTouched() {
         const value = this.modelValue;
         if (value != null && value !== this.__previousCheckedValue) {
+          // TODO: what happens here exactly? Needs to be based on user interaction (?)
           this.touched = true;
           this.__previousCheckedValue = value;
         }
@@ -179,6 +180,18 @@ export const ChoiceGroupMixin = dedupeMixin(
             }" given)`,
           );
         }
+      }
+
+      _onBeforeRepropagateChildrenValues(ev) {
+        if (this.multipleChoice || !ev.target.checked) {
+          return;
+        }
+        this.formElements.forEach(option => {
+          if (ev.target.choiceValue !== option.choiceValue) {
+            option.checked = false; // eslint-disable-line no-param-reassign
+          }
+        });
+        this.__setChoiceGroupTouched();
       }
     },
 );

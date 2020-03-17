@@ -107,6 +107,7 @@ export const FormGroupMixin = dedupeMixin(
         this.touched = false;
         this.focused = false;
         this.__addedSubValidators = false;
+        this._isChoiceGroup = false;
 
         this._checkForOutsideClick = this._checkForOutsideClick.bind(this);
 
@@ -114,7 +115,7 @@ export const FormGroupMixin = dedupeMixin(
         this.addEventListener('focusout', this._onFocusOut);
         this.addEventListener('dirty-changed', this._syncDirty);
         this.addEventListener('validate-performed', this.__onChildValidatePerformed);
-        this.addEventListener('model-value-changed', this.__onModelValueChanged);
+        this.addEventListener('model-value-changed', this.__repropagateChildrenValues);
 
         this.defaultValidators = [new FormElementsHaveNoError()];
       }
@@ -396,19 +397,57 @@ export const FormGroupMixin = dedupeMixin(
         this.validate();
       }
 
-      __onModelValueChanged(e) {
-        // TODO (@tlouisse): explain why this early return is needed.
-        if (e.target === this) {
+      // __onModelValueChanged(e) {
+      //   // TODO (@tlouisse): explain why this early return is needed.
+      //   if (e.target === this) {
+      //     return;
+      //   }
+      //   e.stopImmediatePropagation();
+      //   this.dispatchEvent(
+      //     new CustomEvent('model-value-changed', {
+      //       bubbles: true,
+      //       detail: {
+      //         formPath: [...e.detail.formPath, this],
+      //       },
+      //     }),
+      //   );
+      // }
+
+      // eslint-disable-next-line class-methods-use-this, no-unused-vars
+      _onBeforeRepropagateChildrenValues(ev) {}
+
+      __repropagateChildrenValues(ev) {
+        // Allows parent classes to internally listen to the children change events
+        // (before stopImmediatePropagation is called below).
+        this._onBeforeRepropagateChildrenValues(ev);
+
+        // Prevent eternal loops when we sent the event below.
+        if (ev.target === this) {
           return;
         }
-        e.stopImmediatePropagation();
+        // This makes sure our siblings will not be handled. In this way (combined with the fact
+        // that __repropagateChildrenValues callback is added in constructor(so before the outside
+        // world gets the chance to listen to model-value-changed)), an Application
+        // developer that uses <lion-fieldset @model-value-changed=${myListener}> will only
+        // get the event that will be dispatched right below.
+        ev.stopImmediatePropagation();
+
+        // We only send the checked changed up (not the unchecked). In this way a choice group
+        // (radio-group, checkbox-group, select/listbox) acts as an 'endpoint' (a single Field)
+        // just like the native <select>
+        if (this._isChoiceGroup && !this.multipleChoice && !ev.target.checked) {
+          return;
+        }
+
+        // Compute the formPath. This gives the Application Developer informat
+        let parentFormPath = [];
+        if (!this._isChoiceGroup) {
+          parentFormPath = (ev.detail && ev.detail.formPath) || [ev.target];
+        }
+        const formPath = [...parentFormPath, this];
+        // Since for a11y everything needs to be in lightdom, we don't add 'composed:true'
         this.dispatchEvent(
-          new CustomEvent('model-value-changed', {
-            bubbles: true,
-            detail: {
-              formPath: [...e.detail.formPath, this],
-            },
-          }),
+          new CustomEvent('model-value-changed', { bubbles: true, detail: { formPath } }),
         );
       }
     },
