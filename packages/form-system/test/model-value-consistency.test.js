@@ -178,13 +178,21 @@ describe('lion-select', () => {
       `);
       el.addEventListener('model-value-changed', spy);
       const option2 = el.querySelector('option:nth-child(2)');
+
+      // mimic user input
       option2.selected = true;
+      el._inputNode.dispatchEvent(new CustomEvent('change'));
+
       expect(spy.callCount).to.equal(interactionCount);
 
       spy.resetHistory();
 
       const option3 = el.querySelector('option:nth-child(3)');
+
+      // mimic user input
       option3.selected = true;
+      el._inputNode.dispatchEvent(new CustomEvent('change'));
+
       expect(spy.callCount).to.equal(interactionCount);
     });
   });
