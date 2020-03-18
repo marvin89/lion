@@ -197,8 +197,8 @@ describe('FormControlMixin', () => {
           countFieldset += 1;
         }
         const formEl = await fixture(html`
-          <${tag} name="form" @model-value-changed=${formHandler}>
-            <${tag} name="fieldset" @model-value-changed=${fieldsetHandler}>
+          <${tag} name="form" ._repropagateRole=${'form-group'} @model-value-changed=${formHandler}>
+            <${tag} name="fieldset" ._repropagateRole=${'form-group'} @model-value-changed=${fieldsetHandler}>
               <${tag} name="field"></${tag}>
             </${tag}>
           </${tag}>
@@ -252,7 +252,7 @@ describe('FormControlMixin', () => {
         expect(eventForm.detail.formPath).to.eql([fieldEl, fieldsetEl, formEl]);
       });
 
-      it.only('sends one event for single select choice-groups', async () => {
+      it('sends one event for single select choice-groups', async () => {
         let eventForm;
         let countForm = 0;
         let eventChoiceGroup;
@@ -269,7 +269,7 @@ describe('FormControlMixin', () => {
 
         const formEl = await fixture(html`
           <${tag} name="form">
-            <${tag} name="choice-group" ._repropagateRule=${'choice-group'}>
+            <${tag} name="choice-group" ._repropagateRole=${'choice-group'}>
               <${tag} name="choice-group" id="option1" .checked=${true}></${tag}>
               <${tag} name="choice-group" id="option2"></${tag}>
             </${tag}>
@@ -287,13 +287,13 @@ describe('FormControlMixin', () => {
         option1El.checked = false;
         option1El.dispatchEvent(new Event('model-value-changed', { bubbles: true }));
 
-        // expect(countChoiceGroup).to.equal(1);
+        expect(countChoiceGroup).to.equal(1);
         expect(eventChoiceGroup.target).to.equal(choiceGroupEl);
         expect(eventChoiceGroup.detail.formPath).to.eql([choiceGroupEl]);
 
-        // expect(countForm).to.equal(1);
-        // expect(eventForm.target).to.equal(formEl);
-        // expect(eventForm.detail.formPath).to.eql([choiceGroupEl, formEl]);
+        expect(countForm).to.equal(1);
+        expect(eventForm.target).to.equal(formEl);
+        expect(eventForm.detail.formPath).to.eql([choiceGroupEl, formEl]);
       });
     });
   });
