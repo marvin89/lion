@@ -55,6 +55,11 @@ export const FormControlMixin = dedupeMixin(
            * Contains all elements that should end up in aria-describedby of `._inputNode`
            */
           _ariaDescribedNodes: Array,
+          /**
+           * Based on the role, details of handling model-value-changed repropagation
+           * @type {'child'|'form-group'|'choice-group'}
+           */
+          _repropagateRole: String,
         };
       }
 
@@ -151,8 +156,8 @@ export const FormControlMixin = dedupeMixin(
         this._inputId = uuid(this.localName);
         this._ariaLabelledNodes = [];
         this._ariaDescribedNodes = [];
-        // this._isChoiceGroup = false;
-        // this.addEventListener('model-value-changed', this.__repropagateChildrenValues);
+        this._repropagateRole = 'child';
+        this.addEventListener('model-value-changed', this.__repropagateChildrenValues);
       }
 
       connectedCallback() {
@@ -556,21 +561,79 @@ export const FormControlMixin = dedupeMixin(
         return [...this.children].find(el => el.slot === slotName);
       }
 
-      // __repropagateChildrenValues(ev) {
-      //   if (ev.target === this) return;
-      //   ev.stopImmediatePropagation();
-      //
-      //   if (this._isChoiceGroup && !this.multipleChoice && !ev.target.checked) {
-      //     // We only send the checked changed up (not the unchecked)
-      //     ev.stopPropagation();
-      //     return;
-      //   }
-      //
-      //   const formPath = [...((ev.detail && ev.detail.formPath) || [ev.target]), this];
-      //   // Since for a11y everything needs to be in lightdom, we don't add 'composed:true'
-      //   this.dispatchEvent(
-      //     new CustomEvent('model-value-changed', { bubbles: true, detail: { formPath } }),
-      //   );
-      // }
+      firstUpdated(changedProperties) {
+        super.firstUpdated(changedProperties);
+
+        // When we are not a form-group / choice-group, we don't need to wait for our children
+        // to send a unified event
+        if (this._repropagateRole === 'child') {
+          return;
+        }
+
+        // Initially we don't repropagate model-value-changed events coming
+        // from children. On firstUpdated we re-dispatch this event to maintain
+        // 'count consistency' (to not confuse the application developer with a
+        // large number of initial events). Initially the source field will not
+        // be part of the formPath but afterwards it will.
+        this.__repropagateChildrenInitialized = true;
+        this.dispatchEvent(
+          new CustomEvent('model-value-changed', {
+            bubbles: true,
+            detail: { formPath: [this], initialize: true },
+          }),
+        );
+      }
+
+      // eslint-disable-next-line class-methods-use-this, no-unused-vars
+      _onBeforeRepropagateChildrenValues(ev) {}
+
+      __repropagateChildrenValues(ev) {
+        // Allows parent classes to internally listen to the children change events
+        // (before stopImmediatePropagation is called below).
+        this._onBeforeRepropagateChildrenValues(ev);
+
+        // Normalize target, we also might get it from 'portals' (rich select)
+        const target = (ev.detail && ev.detail.element) || ev.target;
+
+        // Stop repropagating children events before firstUpdated and make sure we de not
+        // repropagate init events of our children (we already sent our own
+        // initial model-value-change event in firstUpdated)
+        const childGroupInitializes = target !== this && ev.detail && ev.detail.initialize;
+        const isGroup = this._repropagateRole !== 'child'; // from-group or choice-group
+        if ((isGroup && !this.__repropagateChildrenInitialized) || childGroupInitializes) {
+          ev.stopImmediatePropagation();
+          return;
+        }
+
+        // Prevent eternal loops after we sent the event below.
+        if (target === this) {
+          return;
+        }
+
+        // This makes sure our siblings will not be handled. In this way (combined with the fact
+        // that __repropagateChildrenValues callback is added in constructor(so before the outside
+        // world gets the chance to listen to model-value-changed)), an Application
+        // developer that uses <lion-fieldset @model-value-changed=${myListener}> will only
+        // get the event that will be dispatched right below.
+        ev.stopImmediatePropagation();
+
+        // We only send the checked changed up (not the unchecked). In this way a choice group
+        // (radio-group, checkbox-group, select/listbox) acts as an 'endpoint' (a single Field)
+        // just like the native <select>
+        if (this._repropagateRole === 'choice-group' && !this.multipleChoice && !target.checked) {
+          return;
+        }
+
+        // Compute the formPath. This gives the Application Developer informat
+        let parentFormPath = [];
+        if (this._repropagateRole !== 'choice-group') {
+          parentFormPath = (ev.detail && ev.detail.formPath) || [target];
+        }
+        const formPath = [...parentFormPath, this];
+        // Since for a11y everything needs to be in lightdom, we don't add 'composed:true'
+        this.dispatchEvent(
+          new CustomEvent('model-value-changed', { bubbles: true, detail: { formPath } }),
+        );
+      }
     },
 );

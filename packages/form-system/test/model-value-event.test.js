@@ -43,7 +43,7 @@ describe('model value event', () => {
       expect(e.detail.formPath).to.eql([input, fieldset]);
     });
 
-    it.only('should contain deep elements', async () => {
+    it('should contain deep elements', async () => {
       const spy = sinon.spy();
       const initSpy = sinon.spy();
       const grandparent = await fixture(html`
@@ -55,11 +55,13 @@ describe('model value event', () => {
       `);
       const parent = grandparent.querySelector('[name=parent]');
       const input = grandparent.querySelector('[name=input]');
+
+      expect(initSpy.callCount).to.equal(1);
+
       grandparent.addEventListener('model-value-changed', spy);
       input.modelValue = 'foo';
       const e = spy.firstCall.args[0];
       expect(e.detail.formPath).to.eql([input, parent, grandparent]);
-      expect(initSpy.callCount).to.equal(1);
     });
 
     it('should ignore elements that are not fields or fieldsets', async () => {

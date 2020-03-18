@@ -199,7 +199,7 @@ export class LionSelectRich extends ScopedElementsMixin(
     // for interaction states
     this._listboxActiveDescendant = null;
     this.__hasInitialSelectedFormElement = false;
-
+    this._repropagateRole = 'choice-group';
     this.__setupEventListeners();
   }
 
@@ -345,24 +345,27 @@ export class LionSelectRich extends ScopedElementsMixin(
     this.__setAttributeForAllFormElements('aria-setsize', this.formElements.length);
     child.setAttribute('aria-posinset', this.formElements.length);
 
-    this.__onChildModelValueChanged({ target: child });
+    this.__proxyChildModelValueChanged({ target: child });
     this.resetInteractionState();
     /* eslint-enable no-param-reassign */
   }
 
   __setupEventListeners() {
     this.__onChildActiveChanged = this.__onChildActiveChanged.bind(this);
-    this.__onChildModelValueChanged = this.__onChildModelValueChanged.bind(this);
+    this.__proxyChildModelValueChanged = this.__proxyChildModelValueChanged.bind(this);
     this.__onKeyUp = this.__onKeyUp.bind(this);
 
     this._listboxNode.addEventListener('active-changed', this.__onChildActiveChanged);
-    this._listboxNode.addEventListener('model-value-changed', this.__onChildModelValueChanged);
+    this._listboxNode.addEventListener('model-value-changed', this.__proxyChildModelValueChanged);
     this.addEventListener('keyup', this.__onKeyUp);
   }
 
   __teardownEventListeners() {
     this._listboxNode.removeEventListener('active-changed', this.__onChildActiveChanged);
-    this._listboxNode.removeEventListener('model-value-changed', this.__onChildModelValueChanged);
+    this._listboxNode.removeEventListener(
+      'model-value-changed',
+      this.__proxyChildModelValueChanged,
+    );
     this._listboxNode.removeEventListener('keyup', this.__onKeyUp);
   }
 
@@ -391,16 +394,44 @@ export class LionSelectRich extends ScopedElementsMixin(
     });
   }
 
-  __onChildModelValueChanged({ target }) {
-    if (target.checked) {
+  // __proxyChildModelValueChanged({ target }) {
+  //   if (target.checked) {
+  //     this.formElements.forEach(formElement => {
+  //       if (formElement !== target) {
+  //         // eslint-disable-next-line no-param-reassign
+  //         formElement.checked = false;
+  //       }
+  //     });
+  //     this.modelValue = target.value;
+  //   }
+  // }
+
+  /**
+   * @override ChoiceGroupMixin > FormGroupMixin
+   */
+  _onBeforeRepropagateChildrenValues(ev) {
+    // super._onBeforeRepropagateChildrenValues(ev);
+    // this.requestUpdate('modelValue');
+  }
+
+  __proxyChildModelValueChanged(ev) {
+    // We need to redispatch the model-value-changed event on 'this', so it will
+    // align with FormGroupMixin __repropagateChildrenValues method. Also, this makes
+    // it act like a portal, in case the listbox is put in a modal overlay on body level.
+    if (ev.stopPropagation) {
+      ev.stopPropagation();
+    }
+
+    if (ev.target.checked) {
       this.formElements.forEach(formElement => {
-        if (formElement !== target) {
+        if (formElement !== ev.target) {
           // eslint-disable-next-line no-param-reassign
           formElement.checked = false;
         }
       });
-      this.modelValue = target.value;
+      this.modelValue = ev.target.value;
     }
+    this.dispatchEvent(new CustomEvent('model-value-changed', { detail: { element: ev.target } }));
   }
 
   __syncInvokerElement() {

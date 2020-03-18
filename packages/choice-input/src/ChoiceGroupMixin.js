@@ -55,22 +55,8 @@ export const ChoiceGroupMixin = dedupeMixin(
       constructor() {
         super();
         this.multipleChoice = false;
-        this._isChoiceGroup = true; // configures event propagation logic of FormControlMixin
+        this._repropagateRole = 'choice-group'; // configures event propagation logic of FormControlMixin
       }
-
-      // connectedCallback() {
-      //   super.connectedCallback();
-      //   if (!this.multipleChoice) {
-      //     this.addEventListener('model-value-changed', this._checkSingleChoiceElements);
-      //   }
-      // }
-
-      // disconnectedCallback() {
-      //   super.disconnectedCallback();
-      //   if (!this.multipleChoice) {
-      //     this.removeEventListener('model-value-changed', this._checkSingleChoiceElements);
-      //   }
-      // }
 
       /**
        * @override from FormRegistrarMixin
@@ -182,12 +168,16 @@ export const ChoiceGroupMixin = dedupeMixin(
         }
       }
 
+      /**
+       * @override FormGroupMixin
+       */
       _onBeforeRepropagateChildrenValues(ev) {
-        if (this.multipleChoice || !ev.target.checked) {
+        const el = (ev.detail && ev.detail.element) || ev.target;
+        if (this.multipleChoice || !el.checked) {
           return;
         }
         this.formElements.forEach(option => {
-          if (ev.target.choiceValue !== option.choiceValue) {
+          if (el.choiceValue !== option.choiceValue) {
             option.checked = false; // eslint-disable-line no-param-reassign
           }
         });
